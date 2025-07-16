@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Page to Markdown",
+  "version": "1.0",
+  "description": "Converts the current page to Markdown and logs it to the console.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_title": "Convert Page to Markdown"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["turndown.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

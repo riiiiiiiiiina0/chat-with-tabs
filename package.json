@@ -1,0 +1,22 @@
+{
+  "name": "chat-with-tabs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/riiiiiiiiiina0/chat-with-tabs.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/riiiiiiiiiina0/chat-with-tabs/issues"
+  },
+  "homepage": "https://github.com/riiiiiiiiiina0/chat-with-tabs#readme",
+  "devDependencies": {
+    "@types/chrome": "^0.1.0"
+  }
+}

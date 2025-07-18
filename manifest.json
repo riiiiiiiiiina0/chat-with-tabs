@@ -6,7 +6,8 @@
   "permissions": [
     "tabs",
     "activeTab",
-    "scripting"
+    "scripting",
+    "declarativeContent"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -18,10 +19,24 @@
   },
   "action": {
     "default_icon": "icons/icon-48.png",
-    "default_title": "Chat with tabs"
+    "default_title": "Chat with tabs",
+    "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "libs/turndown.7.2.0.js",
+        "libs/turndown-plugin-gfm.1.0.2.js",
+        "content.js",
+        "content-add-files-to-chatgpt.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

@@ -77,166 +77,21 @@ document.addEventListener('DOMContentLoaded', () => {
       ...document.querySelectorAll('#tabs-list input[type="checkbox"]:checked'),
     ]);
 
-    const selectedTabs = checked.map((cb) => {
-      const tabId = parseInt(cb.dataset.tabId || '', 10);
-      return { tabId };
-    });
+    // Extract the numeric tab IDs from the checked checkboxes
+    const tabIds = checked
+      .map((cb) => parseInt(cb.dataset.tabId || '', 10))
+      .filter((id) => !Number.isNaN(id));
 
-    if (selectedTabs.length === 0) {
+    // Nothing selected – simply close the popup
+    if (tabIds.length === 0) {
       window.close();
       return;
     }
 
-    // Show a loading spinner if the process takes longer than 1 second
-    const loadingOverlay = /** @type {HTMLDivElement|null} */ (
-      document.getElementById('loading-overlay')
-    );
-    const showLoadingTimer = setTimeout(() => {
-      loadingOverlay?.classList.remove('hidden');
-    }, 1000);
+    // Ask the background service-worker to collect the context and process it
+    chrome.runtime.sendMessage({ type: 'collect-context', tabIds });
 
-    // Collect markdown from each selected tab
-    const collected = [];
-    const expectedCount = selectedTabs.length;
-
-    /**
-     * Listener for messages coming from the injected content script.
-     * It collects the markdown for each tab and when all results are in,
-     * forwards them to the background service worker.
-     * @param {any} request
-     * @param {chrome.runtime.MessageSender} sender
-     */
-    function onContentMessage(request, sender) {
-      if (!request || !request.markdown || !sender.tab || !sender.tab.id) {
-        return;
-      }
-
-      collected.push({
-        tabId: sender.tab.id,
-        title: request.title || '',
-        url: request.url || '',
-        markdown: request.markdown,
-      });
-
-      if (collected.length === expectedCount) {
-        clearTimeout(showLoadingTimer);
-        loadingOverlay?.classList.add('hidden');
-
-        // All tabs responded – forward context to background script
-        clearTimeout(timeoutId);
-        chrome.runtime.sendMessage(
-          { type: 'use-context', tabs: collected },
-          () => {
-            // Clean up listener and close the popup
-            chrome.runtime.onMessage.removeListener(onContentMessage);
-            window.close();
-          },
-        );
-      }
-    }
-
-    // Set up the temporary listener
-    chrome.runtime.onMessage.addListener(onContentMessage);
-
-    // Setup a timeout in case some tabs fail to respond
-    const timeoutId = setTimeout(() => {
-      if (collected.length < expectedCount) {
-        clearTimeout(showLoadingTimer);
-        loadingOverlay?.classList.add('hidden');
-
-        window.alert(
-          `Only received content from ${collected.length} / ${expectedCount} tab(s). Please try again.`,
-        );
-        chrome.runtime.onMessage.removeListener(onContentMessage);
-        window.close();
-      }
-    }, 5000);
-
-    /**
-     * Waits until the given tab finishes loading ("complete" status)
-     * and then resolves. If the tab is already complete, resolves immediately.
-     * @param {number} tabId
-     * @returns {Promise<void>}
-     */
-    function waitForTabLoad(tabId) {
-      return new Promise((resolve) => {
-        // Check current status first so we don't always attach a listener
-        chrome.tabs.get(tabId, (tab) => {
-          if (chrome.runtime.lastError) {
-            console.error(
-              `Failed to get tab ${tabId}:`,
-              chrome.runtime.lastError,
-            );
-            return resolve();
-          }
-
-          // If the tab has already finished loading, or status is undefined, resolve immediately
-          if (!tab || tab.status === 'complete') {
-            return resolve();
-          }
-
-          // Otherwise wait for the onUpdated event signalling completion
-          function listener(updatedTabId, changeInfo) {
-            if (updatedTabId === tabId && changeInfo.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(listener);
-              resolve();
-            }
-          }
-          chrome.tabs.onUpdated.addListener(listener);
-        });
-      });
-    }
-
-    /**
-     * Reloads a discarded tab (if necessary) and injects the scraping scripts.
-     * @param {number} tabId
-     */
-    function prepareAndInject(tabId) {
-      if (!tabId) return;
-
-      chrome.tabs.get(tabId, (tab) => {
-        if (chrome.runtime.lastError) {
-          console.error(
-            `Failed to get tab ${tabId}:`,
-            chrome.runtime.lastError,
-          );
-          return;
-        }
-
-        const proceed = () => {
-          chrome.scripting.executeScript(
-            {
-              target: { tabId },
-              files: [
-                'libs/turndown.7.2.0.js',
-                'libs/turndown-plugin-gfm.1.0.2.js',
-                'content.js',
-              ],
-            },
-            () => {
-              if (chrome.runtime.lastError) {
-                console.error(
-                  `Failed to inject scripts into tab ${tabId}:`,
-                  chrome.runtime.lastError,
-                );
-              }
-            },
-          );
-        };
-
-        // If the tab is discarded, reload it first
-        if (tab && (tab.discarded || tab.frozen)) {
-          chrome.tabs.reload(tabId, () => {
-            waitForTabLoad(tabId).then(proceed);
-          });
-        } else {
-          // Ensure the tab has finished loading before injecting
-          waitForTabLoad(tabId).then(proceed);
-        }
-      });
-    }
-
-    // Prepare and inject scripts for each selected tab
-    selectedTabs.forEach(({ tabId }) => prepareAndInject(tabId));
+    // Close the popup – the background script will take it from here
+    window.close();
   });
 });

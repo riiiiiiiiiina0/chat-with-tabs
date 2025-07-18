@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   chrome.tabs.query({ currentWindow: true }, (tabs) => {
     tabs
-      .filter((tab) => tab.url && tab.url.startsWith('http'))
+      .filter((tab) => tab.url && tab.url.startsWith('http') && !tab.active)
       .forEach((tab) => {
         const li = document.createElement('li');
 

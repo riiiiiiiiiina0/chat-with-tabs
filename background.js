@@ -174,16 +174,11 @@ async function processTabs(tabsToProcess) {
       /* ignore */
     }
 
-    // Find or create a tab for the preferred LLM and inject the helper script
-    const existing = await chrome.tabs.query({ url: `*://${defaultLLM}/*` });
-    if (existing.length) {
-      await focusAndInjectLLM(existing[0].id);
-    } else {
-      const targetUrl = llmInfo[defaultLLM]?.url || 'https://chatgpt.com';
-      chrome.tabs.create({ url: targetUrl }, async (newTab) => {
-        if (newTab?.id) await focusAndInjectLLM(newTab.id);
-      });
-    }
+    // Create a tab for the preferred LLM and inject the helper script
+    const targetUrl = llmInfo[defaultLLM]?.url || 'https://chatgpt.com';
+    chrome.tabs.create({ url: targetUrl }, async (newTab) => {
+      if (newTab?.id) await focusAndInjectLLM(newTab.id);
+    });
   } catch (err) {
     console.error('[background] processTabs error:', err);
   }

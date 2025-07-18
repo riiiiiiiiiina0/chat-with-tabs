@@ -175,10 +175,30 @@ async function processTabs(tabsToProcess) {
     }
 
     // Create a tab for the preferred LLM and inject the helper script
-    const targetUrl = llmInfo[defaultLLM]?.url || 'https://chatgpt.com';
-    chrome.tabs.create({ url: targetUrl }, async (newTab) => {
-      if (newTab?.id) await focusAndInjectLLM(newTab.id);
-    });
+    // Re-use the current active tab if it already shows the preferred LLM; otherwise open a new one.
+    let injectedIntoActive = false;
+    try {
+      const activeTabs = await new Promise((resolve) =>
+        chrome.tabs.query({ active: true, currentWindow: true }, resolve),
+      );
+      const activeTab = activeTabs?.[0];
+      if (activeTab?.url) {
+        const host = new URL(activeTab.url).host;
+        if (host === defaultLLM && typeof activeTab.id === 'number') {
+          await focusAndInjectLLM(activeTab.id);
+          injectedIntoActive = true;
+        }
+      }
+    } catch (_) {
+      /* ignore */
+    }
+
+    if (!injectedIntoActive) {
+      const targetUrl = llmInfo[defaultLLM]?.url || 'https://chatgpt.com';
+      chrome.tabs.create({ url: targetUrl }, async (newTab) => {
+        if (newTab?.id) await focusAndInjectLLM(newTab.id);
+      });
+    }
   } catch (err) {
     console.error('[background] processTabs error:', err);
   }

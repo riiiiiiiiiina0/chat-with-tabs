@@ -12,19 +12,20 @@ A browser extension for any **Chromium-based browser** (Chrome, Edge, Brave, etc
 
 ## 🎥 Demo
 
-[![Watch the demo on YouTube](https://img.youtube.com/vi/te0KYbN8FzQ/0.jpg)](https://www.youtube.com/watch?v=te0KYbN8FzQ)
+[![Watch the demo on YouTube](https://img.youtube.com/vi/1DdaKrrQFNI/0.jpg)](https://www.youtube.com/watch?v=1DdaKrrQFNI)
 
 ---
 
 ## ✨ Features
 
-- 🔍 Lists every open tab in the current window (excluding the active one – because ChatGPT is probably there!).
-- 😴 Detects and marks sleeping/discarded tabs so you know they might take a moment to wake up.
-- ✔️ Multi-select via friendly checkboxes.
-- 🚀 Converts each selected page to **clean Markdown** thanks to [Turndown](https://github.com/mixmark-io/turndown) with GFM support.
-- 📎 Seamlessly pastes the Markdown into ChatGPT/Gemini as **file attachments** using a synthetic clipboard event – no manual copy-paste required.
-- ⏳ Inline loading indicator and timeout handling, so you’re never left wondering.
-- 🛡️ Everything happens locally – no data is sent anywhere except to the AI tab you choose.
+- 🔍 Lists every open tab in the current window (excluding the active one – because the AI chat is probably there!) complete with favicon, title & URL.
+- 😴 Detects sleeping/discarded tabs, reloads them automatically, and marks them with a tiny 💤 so you know they might take a moment to wake up.
+- ✔️ Multi-select in two ways: either tick check-boxes in the popup or simply highlight several tabs in the browser and hit the extension icon – no popup required.
+- 📹 **YouTube super-powers:** captures the video title, description and the full transcript for instant AI summaries.
+- 🚀 Converts each selected page to **clean GitHub-flavoured Markdown** via [Turndown](https://github.com/mixmark-io/turndown).
+- 📎 Pastes the Markdown straight into ChatGPT or Gemini as **file attachments** – goodbye copy-paste.
+- 🔀 Automatically opens (or focuses) your preferred LLM (ChatGPT or Gemini). Pick your favourite in the options page.
+- 🛡️ 100 % local – nothing is sent anywhere except to the AI tab you choose.
 
 ---
 
@@ -40,11 +41,11 @@ A browser extension for any **Chromium-based browser** (Chrome, Edge, Brave, etc
 
 ## 🚶‍♀️ Quick walk-through
 
-1. Open the pages you want to discuss.
-2. Navigate to ChatGPT (or Gemini) in a separate tab.
-3. Click the **Chat with Tabs** extension icon.
-4. Tick the pages you want, then hit **Use as context**.
-5. Watch the files appear in the AI chat. Ask away! 🎉
+1. Open the pages you want to discuss (and, if you like, highlight them in the tab strip).
+2. Click the 🗂️ **Chat with Tabs** icon.
+   - If you’re already on ChatGPT/Gemini you’ll see the popup – tick the pages you want and press **Use as context**.
+   - If you’re on any other page the extension will grab all highlighted tabs right away (no popup!).
+3. The extension opens (or focuses) your preferred LLM and drops the pages in as Markdown files. Ask away! 🎉
 
 ---
 

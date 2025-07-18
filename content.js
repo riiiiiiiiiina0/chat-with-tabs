@@ -1,4 +1,4 @@
-(async () => {
+async function getPageContent() {
   // Clone the document so we can mutate it freely
   const clone = /** @type {Document} */ (document.cloneNode(true));
 
@@ -42,6 +42,12 @@
   });
 
   const markdown = turndownService.turndown(clone.body.innerHTML);
+
+  return markdown;
+}
+
+(async () => {
+  const markdown = await getPageContent();
 
   chrome.runtime.sendMessage({
     title: document.title,

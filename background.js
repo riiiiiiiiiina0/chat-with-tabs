@@ -1,4 +1,6 @@
-// Disable the action button by default and only enable it on https://chatgpt.com/
+const supportedApps = ['chatgpt.com', 'gemini.google.com'];
+
+// Disable the action button by default and only enable it on supported apps
 chrome.runtime.onInstalled.addListener(() => {
   // Disable action on all pages until our rule conditions are met
   chrome.action.disable();
@@ -7,11 +9,12 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
     chrome.declarativeContent.onPageChanged.addRules([
       {
-        conditions: [
-          new chrome.declarativeContent.PageStateMatcher({
-            pageUrl: { hostEquals: 'chatgpt.com' },
-          }),
-        ],
+        conditions: supportedApps.map(
+          (app) =>
+            new chrome.declarativeContent.PageStateMatcher({
+              pageUrl: { hostEquals: app },
+            }),
+        ),
         actions: [new chrome.declarativeContent.ShowAction()],
       },
     ]);
@@ -25,19 +28,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // 1. Popup (or other scripts) asks to use the selected tabs as context
   if (request.type === 'use-context' && Array.isArray(request.tabs)) {
     selectedTabsData = request.tabs;
-    console.log('Selected tabs for context:', selectedTabsData);
 
     // If the currently active tab is ChatGPT, inject the content script that will paste the data
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length === 0) return;
+
       const activeTab = tabs[0];
-      if (
-        activeTab.url?.includes('chatgpt.com') &&
-        typeof activeTab.id === 'number'
-      ) {
-        console.log(
-          'Current active tab is ChatGPT, injecting content-add-files-to-chatgpt.js',
-        );
+
+      const url = activeTab.url ? new URL(activeTab.url) : undefined;
+      const isSupportedApp = url && supportedApps.includes(url.host);
+
+      if (typeof activeTab.id === 'number' && isSupportedApp) {
         chrome.scripting.executeScript({
           target: { tabId: activeTab.id },
           files: ['content-add-files-to-chatgpt.js'],

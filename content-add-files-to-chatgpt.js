@@ -10,7 +10,7 @@
     }
 
     // Locate ChatGPT's prompt text area
-    const editor = document.querySelector('#prompt-textarea');
+    const editor = document.querySelector('[contenteditable="true"]');
     if (!editor) {
       console.warn(
         '[content-add-files-to-chatgpt] ChatGPT prompt textarea not found.',

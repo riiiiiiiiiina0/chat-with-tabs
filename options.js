@@ -18,7 +18,7 @@ function showStatus(text) {
 // Restore previously chosen value (defaults to "chatgpt")
 chrome.storage.sync.get('defaultLLM', (res) => {
   const value =
-    typeof res?.defaultLLM === 'string' ? res.defaultLLM : 'chatgpt';
+    typeof res?.defaultLLM === 'string' ? res.defaultLLM : 'chatgpt.com';
   const input = document.querySelector(
     `input[name="llm-option"][value="${value}"]`,
   );

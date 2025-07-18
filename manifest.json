@@ -1,23 +1,42 @@
 {
   "manifest_version": 3,
-  "name": "Page to Markdown",
+  "name": "Chat with tabs",
   "version": "1.0",
-  "description": "Converts the current page to Markdown and logs it to the console.",
+  "description": "Allow users to chat with their browser tabs",
   "permissions": [
+    "tabs",
     "activeTab",
-    "scripting"
+    "scripting",
+    "declarativeContent"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "icons": {
-    "16": "icons/icon-16x16.png",
-    "48": "icons/icon-48x48.png",
-    "128": "icons/icon-128x128.png"
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   },
   "action": {
-    "default_icon": "icons/icon-48x48.png",
-    "default_title": "Convert Page to Markdown"
+    "default_icon": "icons/icon-48.png",
+    "default_title": "Chat with tabs",
+    "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "libs/turndown.7.2.0.js",
+        "libs/turndown-plugin-gfm.1.0.2.js",
+        "content.js",
+        "content-add-files-to-chatgpt.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

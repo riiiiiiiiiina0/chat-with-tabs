@@ -3,6 +3,30 @@
 // === Constants ===
 const supportedApps = ['chatgpt.com', 'gemini.google.com'];
 
+// === User preference – default LLM ===
+let defaultLLM = 'chatgpt.com';
+
+// Fetch saved preference from storage on startup
+chrome.storage.sync.get('defaultLLM', (res) => {
+  if (res?.defaultLLM && supportedApps.includes(res.defaultLLM)) {
+    defaultLLM = res.defaultLLM;
+  }
+});
+
+// React to preference changes while the service-worker is alive
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.defaultLLM) {
+    const newVal = changes.defaultLLM.newValue;
+    if (supportedApps.includes(newVal)) defaultLLM = newVal;
+  }
+});
+
+// Mapping of host → canonical URL for opening a new tab
+const llmInfo = {
+  'chatgpt.com': { url: 'https://chatgpt.com' },
+  'gemini.google.com': { url: 'https://gemini.google.com/app' },
+};
+
 // === Per-tab popup handling ===
 /**
  * Sets the extension action popup depending on whether the given tab is a supported app.
@@ -27,7 +51,18 @@ chrome.tabs.query({}, (tabs) => tabs.forEach(updatePopupForTab));
 
 // Keep popup assignment up-to-date
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url !== undefined) updatePopupForTab(tab);
+  // Re-evaluate the popup whenever the URL changes *or* the page reloads (status changes).
+  // Relying only on changeInfo.url misses pure reloads where the URL stays the same,
+  // which left the default popup in place and prevented the action click handler
+  // from firing. Also handle the initial "loading" event so that the service-worker
+  // can correct the popup right after it wakes up.
+  if (
+    changeInfo.url !== undefined ||
+    changeInfo.status === 'loading' ||
+    changeInfo.status === 'complete'
+  ) {
+    updatePopupForTab(tab);
+  }
 });
 chrome.tabs.onActivated.addListener(({ tabId }) => {
   chrome.tabs.get(tabId, updatePopupForTab);
@@ -111,7 +146,7 @@ function collectMarkdownFromTabs(tabs) {
   });
 }
 
-async function focusAndInjectChatGPT(tabId) {
+async function focusAndInjectLLM(tabId) {
   await chrome.tabs.update(tabId, { active: true });
   await waitForTabLoad(tabId);
   chrome.scripting.executeScript({
@@ -135,13 +170,26 @@ chrome.action.onClicked.addListener(async (activeTab) => {
     if (collected.length === 0) return;
     selectedTabsData = collected;
 
-    // Find or create a ChatGPT tab
-    const existing = await chrome.tabs.query({ url: '*://chatgpt.com/*' });
+    // Refresh the currently selected defaultLLM preference (may have changed since startup)
+    try {
+      const { defaultLLM: storedLLM } = await chrome.storage.sync.get(
+        'defaultLLM',
+      );
+      if (storedLLM && supportedApps.includes(storedLLM)) {
+        defaultLLM = storedLLM;
+      }
+    } catch (_) {
+      /* ignore retrieval errors and fall back to cached defaultLLM */
+    }
+
+    // Find or create a tab for the user's default LLM
+    const existing = await chrome.tabs.query({ url: `*://${defaultLLM}/*` });
     if (existing.length) {
-      await focusAndInjectChatGPT(existing[0].id);
+      await focusAndInjectLLM(existing[0].id);
     } else {
-      chrome.tabs.create({ url: 'https://chatgpt.com' }, async (newTab) => {
-        if (newTab?.id) await focusAndInjectChatGPT(newTab.id);
+      const targetUrl = llmInfo[defaultLLM]?.url || 'https://chatgpt.com';
+      chrome.tabs.create({ url: targetUrl }, async (newTab) => {
+        if (newTab?.id) await focusAndInjectLLM(newTab.id);
       });
     }
   } catch (err) {

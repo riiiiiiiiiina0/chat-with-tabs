@@ -1,5 +1,23 @@
 // @ts-check
 
+// Automatically set DaisyUI theme based on system preference
+(function autoTheme() {
+  const applyTheme = () => {
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)',
+    ).matches;
+    document.documentElement.setAttribute(
+      'data-theme',
+      prefersDark ? 'dark' : 'light',
+    );
+  };
+  applyTheme();
+  // Update theme if the system preference changes
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', applyTheme);
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   const listEl = /** @type {HTMLUListElement|null} */ (
     document.getElementById('tabs-list')

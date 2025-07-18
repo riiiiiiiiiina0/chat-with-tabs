@@ -23,7 +23,7 @@
           setTimeout(tryFind, 1000);
         }
       }
-      tryFind();
+      setTimeout(tryFind, 1000);
     });
   }
 

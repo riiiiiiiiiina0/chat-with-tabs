@@ -155,22 +155,14 @@ async function focusAndInjectLLM(tabId) {
   });
 }
 
-// === Action button click handler (only fires when popup is cleared) ===
-chrome.action.onClicked.addListener(async (activeTab) => {
+// === Process selected tabs and open the LLM ===
+async function processTabs(tabsToProcess) {
   try {
-    // Determine whether multiple tabs are highlighted
-    const highlighted = await chrome.tabs.query({
-      currentWindow: true,
-      highlighted: true,
-    });
-    const tabsToProcess = highlighted.length > 1 ? highlighted : [activeTab];
-
     const collected = await collectMarkdownFromTabs(tabsToProcess);
-
     if (collected.length === 0) return;
     selectedTabsData = collected;
 
-    // Refresh the currently selected defaultLLM preference (may have changed since startup)
+    // Refresh user preference (might have changed while the service-worker was asleep)
     try {
       const { defaultLLM: storedLLM } = await chrome.storage.sync.get(
         'defaultLLM',
@@ -179,31 +171,67 @@ chrome.action.onClicked.addListener(async (activeTab) => {
         defaultLLM = storedLLM;
       }
     } catch (_) {
-      /* ignore retrieval errors and fall back to cached defaultLLM */
+      /* ignore */
     }
 
-    // Find or create a tab for the user's default LLM
-    const existing = await chrome.tabs.query({ url: `*://${defaultLLM}/*` });
-    if (existing.length) {
-      await focusAndInjectLLM(existing[0].id);
-    } else {
+    // Create a tab for the preferred LLM and inject the helper script
+    // Re-use the current active tab if it already shows the preferred LLM; otherwise open a new one.
+    let injectedIntoActive = false;
+    try {
+      const activeTabs = await new Promise((resolve) =>
+        chrome.tabs.query({ active: true, currentWindow: true }, resolve),
+      );
+      const activeTab = activeTabs?.[0];
+      if (activeTab?.url) {
+        const host = new URL(activeTab.url).host;
+        if (host === defaultLLM && typeof activeTab.id === 'number') {
+          await focusAndInjectLLM(activeTab.id);
+          injectedIntoActive = true;
+        }
+      }
+    } catch (_) {
+      /* ignore */
+    }
+
+    if (!injectedIntoActive) {
       const targetUrl = llmInfo[defaultLLM]?.url || 'https://chatgpt.com';
       chrome.tabs.create({ url: targetUrl }, async (newTab) => {
         if (newTab?.id) await focusAndInjectLLM(newTab.id);
       });
     }
   } catch (err) {
+    console.error('[background] processTabs error:', err);
+  }
+}
+
+// === Action button click handler (only fires when popup is cleared) ===
+chrome.action.onClicked.addListener(async (activeTab) => {
+  try {
+    const highlighted = await chrome.tabs.query({
+      currentWindow: true,
+      highlighted: true,
+    });
+    const tabsToProcess = highlighted.length > 1 ? highlighted : [activeTab];
+    await processTabs(tabsToProcess);
+  } catch (err) {
     console.error('[background] action.onClicked error:', err);
   }
 });
 
-// === Legacy message handling (popup flow) ===
+// === Runtime message handling ===
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // 1. Popup (or other scripts) asks to use the selected tabs as context
+  // 0. Popup requests context collection for specific tab IDs (new flow)
+  if (request.type === 'collect-context' && Array.isArray(request.tabIds)) {
+    const tabsToProcess = request.tabIds.map((id) => ({ id }));
+    processTabs(tabsToProcess); // fire-and-forget
+    return; // no response needed
+  }
+
+  // 1. Popup (legacy flow) already collected the context and just hands it over
   if (request.type === 'use-context' && Array.isArray(request.tabs)) {
     selectedTabsData = request.tabs;
 
-    // If the currently active tab is ChatGPT, inject the content script that will paste the data
+    // If the currently active tab is a supported LLM, inject the helper immediately
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length === 0) return;
 

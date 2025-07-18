@@ -45,7 +45,7 @@ async function getPageContent() {
   // Remove things that are useless in Markdown
   clone
     .querySelectorAll(
-      `script, style, noscript, iframe, svg, canvas, header, footer, nav, aside, [hidden], [aria-hidden="true"]`,
+      `script, style, noscript, iframe, svg, canvas, img, video, header, footer, nav, aside, [hidden], [aria-hidden="true"]`,
     )
     .forEach((el) => el.remove());
 
